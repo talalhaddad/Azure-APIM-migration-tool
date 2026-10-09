@@ -164,6 +164,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanFinish))]
     private async Task FinishAsync()
     {
+        var apis = SelectedApis;
+        var selOps = apis.SelectMany(a => a.SelectedOperations).ToList();
+        var message =
+            $"You are about to migrate to '{Destination.Apim?.Resource.Id.Name}'.\n\n" +
+            $"APIs: {apis.Count}\n" +
+            $"Operations to create: {selOps.Count(o => !o.ExistsOnDestination)}\n" +
+            $"Operations to overwrite: {selOps.Count(o => o.ExistsOnDestination)}\n" +
+            $"Content: {(Options.IncludePolicies ? "definitions and policies" : "definitions only")}\n\n" +
+            "This will change the destination API Management instance. Do you want to continue?";
+
+        if (ConfirmMigrationAsync is not null && !await ConfirmMigrationAsync(message))
+        {
+            Status = "Migration aborted by user.";
+            return;
+        }
+
         CurrentPage = 6;
         UpdatePages();
         LogText = string.Empty;
@@ -174,6 +190,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         FinishCommand.NotifyCanExecuteChanged();
         Status = "Migration completed. See log for details.";
     }
+
+    /// <summary>Set by the view; shows a confirm dialog and returns true to proceed, false to abort.</summary>
+    public Func<string, Task<bool>>? ConfirmMigrationAsync { get; set; }
+
 
     private bool CanFinish() => !IsBusy && CurrentPage == 5 && !MigrationDone;
 

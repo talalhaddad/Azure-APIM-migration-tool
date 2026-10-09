@@ -1,14 +1,66 @@
 using ApimMigrator.Services;
 using ApimMigrator.ViewModels;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
 namespace ApimMigrator.Views;
 
 public partial class MainWindow : Window
 {
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object? sender, System.EventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            vm.ConfirmMigrationAsync = ShowConfirmDialogAsync;
+    }
+
+    private async Task<bool> ShowConfirmDialogAsync(string message)
+    {
+        var result = false;
+
+        var yes = new Button { Content = "Migrate", Width = 110, IsDefault = true };
+        var no = new Button { Content = "Abort", Width = 110, IsCancel = true };
+
+        var dialog = new Window
+        {
+            Title = "Confirm migration",
+            Width = 460,
+            SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Content = new StackPanel
+            {
+                Margin = new Thickness(20),
+                Spacing = 16,
+                Children =
+                {
+                    new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Spacing = 8,
+                        Children = { yes, no }
+                    }
+                }
+            }
+        };
+
+        yes.Click += (_, _) => { result = true; dialog.Close(); };
+        no.Click += (_, _) => { result = false; dialog.Close(); };
+
+        await dialog.ShowDialog(this);
+        return result;
+    }
 
     private async void OnExportClick(object? sender, RoutedEventArgs e)
     {
