@@ -1,0 +1,296 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:ApimMigrator.ViewModels"
+		xmlns:m="using:ApimMigrator.Models"
+		x:Class="ApimMigrator.Views.MainWindow"
+		x:DataType="vm:MainWindowViewModel"
+		Title="Azure APIM Migration Tool"
+		Width="1100" Height="760" MinWidth="850" MinHeight="580"
+		WindowStartupLocation="CenterScreen">
+
+  <Window.Styles>
+	<Style Selector="TextBlock.h2">
+	  <Setter Property="FontSize" Value="15" />
+	  <Setter Property="FontWeight" Value="SemiBold" />
+	  <Setter Property="Margin" Value="0,0,0,12" />
+	</Style>
+	<Style Selector="TextBlock.navItem">
+	  <Setter Property="Padding" Value="10,5" />
+	  <Setter Property="Foreground" Value="#0066CC" />
+	</Style>
+	<Style Selector="Border.navCurrent">
+	  <Setter Property="Background" Value="#0078D4" />
+	</Style>
+	<Style Selector="Border.navCurrent TextBlock.navItem">
+	  <Setter Property="Foreground" Value="White" />
+	</Style>
+	<Style Selector="TextBlock.navItem:disabled">
+	  <Setter Property="Foreground" Value="Gray" />
+	</Style>
+	<Style Selector="TextBlock.label">
+	  <Setter Property="VerticalAlignment" Value="Center" />
+	  <Setter Property="Margin" Value="0,0,8,0" />
+	</Style>
+	<Style Selector="TextBlock.exists">
+	  <Setter Property="Foreground" Value="#C05000" />
+	  <Setter Property="FontWeight" Value="SemiBold" />
+	</Style>
+	<Style Selector="TextBox.code">
+	  <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+	  <Setter Property="FontSize" Value="12" />
+	  <Setter Property="AcceptsReturn" Value="True" />
+	  <Setter Property="TextWrapping" Value="NoWrap" />
+	  <Setter Property="MinHeight" Value="120" />
+	  <Setter Property="MaxHeight" Value="300" />
+	</Style>
+  </Window.Styles>
+
+  <DockPanel>
+	<!-- Header -->
+	<Border DockPanel.Dock="Top" Background="White" BorderBrush="#DDD" BorderThickness="0,0,0,1" Padding="16,12">
+	  <StackPanel Orientation="Horizontal" Spacing="14">
+		<Border Width="40" Height="40" CornerRadius="4" Background="#0078D4">
+		  <TextBlock Text="⇄" FontSize="22" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+		</Border>
+		<TextBlock Text="{Binding PageTitle}" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+	  </StackPanel>
+	</Border>
+
+	<!-- Footer buttons -->
+	<Border DockPanel.Dock="Bottom" BorderBrush="#DDD" BorderThickness="0,1,0,0" Padding="12">
+	  <DockPanel>
+		<TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="520" />
+		<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+		  <ProgressBar IsIndeterminate="True" Width="100" IsVisible="{Binding IsBusy}" />
+		  <Button Content="&lt; Previous" Width="100" Command="{Binding PreviousCommand}" />
+		  <Button Content="Next &gt;" Width="100" Command="{Binding NextCommand}" />
+		  <Button Content="Finish" Width="100" Command="{Binding FinishCommand}" />
+		  <Button Content="Cancel" Width="100" Command="{Binding CancelCommand}" />
+		</StackPanel>
+	  </DockPanel>
+	</Border>
+
+	<!-- Left navigation -->
+	<Border DockPanel.Dock="Left" Width="200" Background="#F3F3F3" BorderBrush="#DDD" BorderThickness="0,0,1,0">
+	  <ItemsControl ItemsSource="{Binding Pages}" Margin="0,8">
+		<ItemsControl.ItemTemplate>
+		  <DataTemplate x:DataType="vm:PageItem">
+			<Border Classes.navCurrent="{Binding IsCurrent}">
+			  <TextBlock Classes="navItem" Text="{Binding Title}" IsEnabled="{Binding IsEnabled}" />
+			</Border>
+		  </DataTemplate>
+		</ItemsControl.ItemTemplate>
+	  </ItemsControl>
+	</Border>
+
+	<!-- Pages -->
+	<Panel Margin="20,16">
+
+	  <!-- 0 Introduction -->
+	  <StackPanel IsVisible="{Binding IsIntro}" Spacing="10">
+		<TextBlock Classes="h2" Text="Welcome to the Azure API Management migration wizard." />
+		<TextBlock TextWrapping="Wrap" Text="This wizard copies APIs, operations, schemas, version sets and policies from a source APIM instance to a destination APIM instance. The instances can be in different subscriptions or tenants, and you can sign in with more than one account." />
+		<TextBlock Text="Steps:" FontWeight="SemiBold" Margin="0,8,0,0" />
+		<TextBlock TextWrapping="Wrap" Text="1. Sign in and select the source and destination APIM instances.&#10;2. Discover the source APIs, operations and policies, and check which ones already exist on the destination.&#10;3. Choose all APIs, or select individual APIs and operations.&#10;4. Choose to migrate definitions only, or definitions and policies.&#10;5. Review and change URLs and policies for each API and operation.&#10;6. Review the migration plan.&#10;7. Run the migration." />
+	  </StackPanel>
+
+	  <!-- 1 Connect -->
+	  <ScrollViewer IsVisible="{Binding IsConnect}">
+		<StackPanel Spacing="12">
+		  <TextBlock Classes="h2" Text="Sign in to Azure and select the source and destination APIM instances." />
+		  <Border BorderBrush="#CCC" BorderThickness="1" Padding="12" CornerRadius="4">
+			<StackPanel Spacing="8">
+			  <TextBlock Text="Signed-in accounts" FontWeight="SemiBold" />
+			  <StackPanel Orientation="Horizontal" Spacing="8">
+				<TextBlock Classes="label" Text="Tenant ID (optional):" />
+				<TextBox Width="300" Text="{Binding LoginTenantId}" Watermark="contoso.onmicrosoft.com or GUID" />
+				<CheckBox Content="Use device code" IsChecked="{Binding UseDeviceCode}" />
+				<Button Content="Add account..." Command="{Binding LoginCommand}" />
+			  </StackPanel>
+			  <SelectableTextBlock Text="{Binding DeviceCodeMessage}" TextWrapping="Wrap" Foreground="DarkOrange"
+								   IsVisible="{Binding DeviceCodeMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+			  <ListBox ItemsSource="{Binding Sessions}" MaxHeight="100" />
+			</StackPanel>
+		  </Border>
+		  <Grid ColumnDefinitions="*,16,*">
+			<ContentControl Grid.Column="0" Content="{Binding Source}" />
+			<ContentControl Grid.Column="2" Content="{Binding Destination}" />
+		  </Grid>
+		</StackPanel>
+	  </ScrollViewer>
+
+	  <!-- 2 Choose objects -->
+	  <DockPanel IsVisible="{Binding IsChoose}">
+		<TextBlock DockPanel.Dock="Top" Classes="h2" Text="Select the APIs and operations to migrate." />
+		<StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
+		  <RadioButton GroupName="mode" Content="Migrate all APIs and operations (full migration)" IsChecked="{Binding MigrateAll}" />
+		  <RadioButton GroupName="mode" Content="Select specific APIs and operations" IsChecked="{Binding !MigrateAll}" />
+		  <TextBlock Text="{Binding ConflictText}" Classes="exists" TextWrapping="Wrap" />
+		</StackPanel>
+		<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+		  <Button Content="Select All" Command="{Binding SelectAllCommand}" IsEnabled="{Binding !MigrateAll}" />
+		  <Button Content="Deselect All" Command="{Binding DeselectAllCommand}" IsEnabled="{Binding !MigrateAll}" />
+		  <Button Content="Select only new (skip existing on destination)" Command="{Binding SelectNewOnlyCommand}" IsEnabled="{Binding !MigrateAll}" />
+		</StackPanel>
+		<Border BorderBrush="#AAA" BorderThickness="1">
+		  <TreeView ItemsSource="{Binding ApiTreeRoots}" IsEnabled="{Binding !MigrateAll}">
+			<TreeView.DataTemplates>
+			  <TreeDataTemplate DataType="m:ApiRootNode" ItemsSource="{Binding Children}">
+				<CheckBox IsThreeState="True" IsChecked="{Binding IsChecked}" Content="{Binding Title}" FontWeight="SemiBold" />
+			  </TreeDataTemplate>
+			  <TreeDataTemplate DataType="m:ApiModel" ItemsSource="{Binding Operations}">
+				<CheckBox IsThreeState="True" IsChecked="{Binding IsChecked}">
+				  <TextBlock Text="{Binding TreeLabel}" Classes.exists="{Binding ExistsOnDestination}" />
+				</CheckBox>
+			  </TreeDataTemplate>
+			  <DataTemplate DataType="m:OperationModel">
+				<CheckBox IsChecked="{Binding IsSelected}">
+				  <TextBlock Text="{Binding TreeLabel}" FontFamily="Consolas,Menlo,monospace" Classes.exists="{Binding ExistsOnDestination}" />
+				</CheckBox>
+			  </DataTemplate>
+			</TreeView.DataTemplates>
+		  </TreeView>
+		</Border>
+	  </DockPanel>
+
+	  <!-- 3 Options -->
+	  <StackPanel IsVisible="{Binding IsOptions}" Spacing="10">
+		<TextBlock Classes="h2" Text="Choose what to migrate." />
+		<RadioButton GroupName="content" Content="API definitions only (APIs, operations, schemas)" IsChecked="{Binding !IncludePolicies}" />
+		<RadioButton GroupName="content" Content="API definitions and policies (API and operation policies, plus named values and backends they reference)" IsChecked="{Binding IncludePolicies}" />
+		<Separator Margin="0,6" />
+		<CheckBox Content="Include API schemas" IsChecked="{Binding IncludeSchemas}" />
+		<CheckBox Content="For APIs that already exist on the destination, also update API-level settings (path, service URL, API policy)" IsChecked="{Binding UpdateExistingApiSettings}" />
+		<TextBlock TextWrapping="Wrap" Foreground="Gray"
+				   Text="Only the selected operations are created or overwritten. Destination operations that you leave unselected, or that do not exist in the source, are not changed." />
+	  </StackPanel>
+
+	  <!-- 4 Destination URLs & policies -->
+	  <DockPanel IsVisible="{Binding IsUrls}">
+		<TextBlock DockPanel.Dock="Top" Classes="h2" Text="Review and change the destination URLs and policies for each API and operation." />
+		<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+		  <TextBlock Classes="label" Text="Find:" />
+		  <TextBox Width="230" Text="{Binding FindText}" />
+		  <TextBlock Classes="label" Text="Replace with:" />
+		  <TextBox Width="230" Text="{Binding ReplaceText}" />
+		  <Button Content="Replace in all URLs and policies" Command="{Binding ReplaceAllCommand}" />
+		  <Button Content="Reset" Command="{Binding ResetUrlsCommand}" />
+		</StackPanel>
+		<Border BorderBrush="#AAA" BorderThickness="1">
+		  <ScrollViewer>
+			<ItemsControl ItemsSource="{Binding UrlApis}" Margin="8">
+			  <ItemsControl.ItemTemplate>
+				<DataTemplate x:DataType="m:ApiModel">
+				  <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,0,6">
+					<Expander.Header>
+					  <TextBlock Text="{Binding TreeLabel}" FontWeight="SemiBold" Classes.exists="{Binding ExistsOnDestination}" />
+					</Expander.Header>
+					<StackPanel Spacing="6">
+					  <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto">
+						<TextBlock Classes="label" Text="API URL suffix (path):" />
+						<TextBox Grid.Column="1" Text="{Binding TargetPath}" Margin="0,2" />
+						<TextBlock Grid.Row="1" Classes="label" Text="Web service (base) URL:" />
+						<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TargetServiceUrl}" Margin="0,2" />
+						<TextBlock Grid.Row="2" Classes="label" Text="Policy backend base-url:" IsVisible="{Binding HasBackendBaseUrl}" />
+						<TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TargetBackendBaseUrl}" Margin="0,2" IsVisible="{Binding HasBackendBaseUrl}" />
+					  </Grid>
+
+					  <Expander Header="API policy (destination XML)" IsVisible="{Binding HasApiPolicy}"
+								HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+						<StackPanel Spacing="4">
+						  <TextBlock Text="Modified" Classes="exists" IsVisible="{Binding ApiPolicyChanged}" />
+						  <TextBox Classes="code" Text="{Binding TargetApiPolicyXml}" />
+						</StackPanel>
+					  </Expander>
+
+					  <TextBlock Text="Selected operations" FontWeight="SemiBold" Margin="0,6,0,0" />
+					  <ItemsControl ItemsSource="{Binding SelectedOperations}">
+						<ItemsControl.ItemTemplate>
+						  <DataTemplate x:DataType="m:OperationModel">
+							<Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,2">
+							  <Expander.Header>
+								<TextBlock Text="{Binding TreeLabel}" FontFamily="Consolas,Menlo,monospace" Classes.exists="{Binding ExistsOnDestination}" />
+							  </Expander.Header>
+							  <StackPanel Spacing="4">
+								<Grid ColumnDefinitions="180,*,*" RowDefinitions="Auto,Auto,Auto,Auto">
+								  <TextBlock Grid.Column="1" Text="Source" Foreground="Gray" />
+								  <TextBlock Grid.Column="2" Text="Destination" Foreground="Gray" Margin="4,0,0,0" />
+
+								  <TextBlock Grid.Row="1" Classes="label" Text="URL template:" />
+								  <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SourceUrlTemplate, Mode=OneWay}" IsReadOnly="True" Margin="0,2" />
+								  <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding TargetUrlTemplate}" Margin="4,2,0,2" />
+
+								  <TextBlock Grid.Row="2" Classes="label" Text="Policy rewrite-uri:" IsVisible="{Binding HasRewriteUri}" />
+								  <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding OriginalRewriteUri, Mode=OneWay}" IsReadOnly="True" Margin="0,2" IsVisible="{Binding HasRewriteUri}" />
+								  <TextBox Grid.Row="2" Grid.Column="2" Text="{Binding TargetRewriteUri}" Margin="4,2,0,2" IsVisible="{Binding HasRewriteUri}" />
+
+								  <TextBlock Grid.Row="3" Classes="label" Text="Policy backend base-url:" IsVisible="{Binding HasBackendBaseUrl}" />
+								  <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding OriginalBackendBaseUrl, Mode=OneWay}" IsReadOnly="True" Margin="0,2" IsVisible="{Binding HasBackendBaseUrl}" />
+								  <TextBox Grid.Row="3" Grid.Column="2" Text="{Binding TargetBackendBaseUrl}" Margin="4,2,0,2" IsVisible="{Binding HasBackendBaseUrl}" />
+								</Grid>
+
+								<TextBlock Text="No operation-level policy." Foreground="Gray" IsVisible="{Binding !HasPolicy}" />
+								<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*" IsVisible="{Binding HasPolicy}">
+								  <TextBlock Text="Source policy" Foreground="Gray" />
+								  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="4,0,0,0">
+									<TextBlock Text="Destination policy (editable)" Foreground="Gray" />
+									<TextBlock Text="Modified" Classes="exists" IsVisible="{Binding PolicyChanged}" />
+								  </StackPanel>
+								  <TextBox Grid.Row="1" Classes="code" Text="{Binding PolicyXml, Mode=OneWay}" IsReadOnly="True" />
+								  <TextBox Grid.Row="1" Grid.Column="1" Classes="code" Text="{Binding TargetPolicyXml}" Margin="4,0,0,0" />
+								</Grid>
+							  </StackPanel>
+							</Expander>
+						  </DataTemplate>
+						</ItemsControl.ItemTemplate>
+					  </ItemsControl>
+					</StackPanel>
+				  </Expander>
+				</DataTemplate>
+			  </ItemsControl.ItemTemplate>
+			</ItemsControl>
+		  </ScrollViewer>
+		</Border>
+	  </DockPanel>
+
+	  <!-- 5 Summary -->
+	  <DockPanel IsVisible="{Binding IsSummary}">
+		<TextBlock DockPanel.Dock="Top" Classes="h2" Text="Review the migration plan, then click Finish to start." />
+		<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+		  <TextBlock Classes="label" Text="Export deployment template:" />
+		  <Button Content="ARM template..." Tag="Arm" Click="OnExportClick" />
+		  <Button Content="Terraform..." Tag="Terraform" Click="OnExportClick" />
+		  <Button Content="PowerShell..." Tag="PowerShell" Click="OnExportClick" />
+		</StackPanel>
+		<TextBox Text="{Binding SummaryText}"
+				 FontFamily="Consolas,Menlo,monospace" />
+	  </DockPanel>
+
+	  <!-- 6 Migrate -->
+	  <DockPanel IsVisible="{Binding IsMigrate}">
+		<TextBlock DockPanel.Dock="Top" Classes="h2" Text="Migration progress" />
+		<TextBox Text="{Binding LogText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+				 FontFamily="Consolas,Menlo,monospace" CaretIndex="{Binding LogText.Length}" />
+	  </DockPanel>
+	</Panel>
+  </DockPanel>
+
+  <Window.DataTemplates>
+	<DataTemplate DataType="vm:EndpointSelector">
+	  <Border BorderBrush="#CCC" BorderThickness="1" Padding="12" CornerRadius="4">
+		<StackPanel Spacing="6">
+		  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" />
+		  <TextBlock Text="Account" />
+		  <ComboBox HorizontalAlignment="Stretch" SelectedItem="{Binding Session}"
+					ItemsSource="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Sessions}" />
+		  <TextBlock Text="Subscription" />
+		  <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Subscriptions}" SelectedItem="{Binding Subscription}" />
+		  <TextBlock Text="API Management instance" />
+		  <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Services}" SelectedItem="{Binding Apim}" />
+		  <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" />
+		  <TextBlock Text="{Binding Error}" Foreground="Red" TextWrapping="Wrap" />
+		</StackPanel>
+	  </Border>
+	</DataTemplate>
+  </Window.DataTemplates>
+</Window>
